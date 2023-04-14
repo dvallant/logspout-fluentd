@@ -28,6 +28,7 @@ Optional environment variables:
 
 - `TAG_PREFIX` the *fixed* tag prefix
 - `TAG_SUFFIX_LABEL` the docker label key for which to substitue as the *dynamic* tag suffix
+- `LOG_LEVEL` [trace|debug|info|warning|error|fatal|panic] Change the log level. Defaults to info.
 
 The other fluentd specific environment variables include the list below and
 their explanation can be better read from the fluentd log driver [website](https://docs.docker.com/config/containers/logging/fluentd/).
@@ -39,7 +40,6 @@ their explanation can be better read from the fluentd log driver [website](https
 - `FLUENTD_SUBSECOND_PRECISION` [true|false] Generates event logs in nanosecond resolution. Defaults to false.
 - `FLUENTD_REQUEST_ACK` [true|false] For reliability. Fluent-bit currently doesn't support this. Defaults to false.
 - `FLUENTD_WRITE_TIMEOUT` [int] Write timeout to post to fluentd/fluent-bit. Defaults to 3 seconds.
-
 
 Configure Logspout to receive forwarded messages, something like this:
 
@@ -90,6 +90,7 @@ Configure Logspout to receive forwarded messages, something like this:
 			-v /var/run/docker.sock:/var/run/docker.sock \
 			-e TAG_PREFIX=docker \
 			-e TAG_SUFFIX_LABEL="com.mycompany.service" \
+			-e LOG_LEVEL="debug" \
 			-e FLUENTD_ASYNC_CONNECT="true" \
 			-e LOGSPOUT="ignore" \
 			mycustomlogspout \

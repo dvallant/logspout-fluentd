@@ -19,13 +19,15 @@ command after building:
 *
 */
 import (
-	"log"
 	"math"
 	"net"
 	"os"
 	"regexp"
 	"strconv"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	easy "github.com/t-tomalak/logrus-easy-formatter"
 
 	"github.com/fluent/fluent-logger-golang/fluent"
 	"github.com/gliderlabs/logspout/router"
@@ -66,7 +68,7 @@ func (ad *Adapter) Stream(logstream chan *router.Message) {
 	for message := range logstream {
 		// Skip if message is empty
 		if pattern.MatchString(message.Data) {
-			log.Println("Skipping empty message!")
+			log.Debug("Skipping empty message!")
 			continue
 		}
 
@@ -88,12 +90,12 @@ func (ad *Adapter) Stream(logstream chan *router.Message) {
 			"container_name": message.Container.Name,
 			"source":         message.Source,
 		}
-		log.Println(tag, message.Time, record)
+		log.Debugf("tag=%s; record=%s", tag, record)
 
 		// Send to fluentd
 		err = ad.writer.PostWithTime(tag, message.Time, record)
 		if err != nil {
-			log.Println("fluentd-adapter PostWithTime Error: ", err)
+			log.Errorf("fluentd-adapter PostWithTime Error: %v", err)
 			continue
 		}
 	}
@@ -109,13 +111,17 @@ func NewAdapter(route *router.Route) (router.LogAdapter, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Println("Connectivity successful to fluentd @ " + route.Address)
+	log.Infof("Connectivity successful to fluentd @ %s", route.Address)
 
 	// Construct fluentd config object
 	host, port, err := net.SplitHostPort(route.Address)
-	portNum, err := strconv.Atoi(port)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Invalid fluentd-address %s", route.Address)
+	}
+
+	portNum, err := strconv.Atoi(port)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Invalid port number in fluentd-address %s", route.Address)
 	}
 
 	bufferLimit, err := strconv.Atoi(getenv("FLUENTD_BUFFER_LIMIT", strconv.Itoa(defaultBufferLimit)))
@@ -183,5 +189,18 @@ func NewAdapter(route *router.Route) (router.LogAdapter, error) {
 }
 
 func init() {
+	logLevel, err := log.ParseLevel(getenv("LOG_LEVEL", "info"))
+	if err != nil {
+		log.Fatalf("Error parsing log level: %v", err)
+	}
+	log.SetFormatter(
+		&easy.Formatter{
+			TimestampFormat: "2006-01-02 15:04:05",
+			LogFormat:       "%time% [%lvl%] %msg%\n",
+		},
+	)
+	log.SetLevel(logLevel)
+	log.Infof("LOG_LEVEL=%s", logLevel)
+
 	router.AdapterFactories.Register(NewAdapter, "fluentd")
 }
