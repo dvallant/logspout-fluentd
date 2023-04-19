@@ -82,9 +82,18 @@ Configure Logspout to receive forwarded messages, something like this:
 
 # Run standalone fluent-bit instance
 >> docker run -ti -p 24224:24224 \
-        fluent/fluent-bit:1.2 /fluent-bit/bin/fluent-bit \
-            -i forward://0.0.0.0:24224 -o stdout
+        fluent/fluent-bit:2.0.11 /fluent-bit/bin/fluent-bit \
+            -i forward -o stdout
 
+# Run custom built of logspout locally:
+>> docker run --rm --name="logspout" --network host \
+			-v /var/run/docker.sock:/var/run/docker.sock \
+			-e TAG_PREFIX=docker \
+			-e TAG_SUFFIX_LABEL="com.mycompany.service" \
+			-e FLUENTD_ASYNC_CONNECT="true" \
+			-e LOGSPOUT="ignore" \
+			mycustomlogspout \
+				./logspout fluentd://localhost:24224
 
 # Send sample log from test container, you should view the log entry
 # captured in logspout and a similar log entry in fluent-bit.
