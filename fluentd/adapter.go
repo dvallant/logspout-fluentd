@@ -58,10 +58,14 @@ type Adapter struct {
 
 // Stream handles a stream of messages from Logspout. Implements router.logAdapter.
 func (ad *Adapter) Stream(logstream chan *router.Message) {
+	// create a regex pattern to identify empty messages
+	pattern, err := regexp.Compile("^[[:space:]]*$")
+	if err != nil {
+		log.Fatalf("Could not compile regexp: %v", err)
+	}
 	for message := range logstream {
 		// Skip if message is empty
-		messageIsEmpty, err := regexp.MatchString("^[[:space:]]*$", message.Data)
-		if messageIsEmpty {
+		if pattern.MatchString(message.Data) {
 			log.Println("Skipping empty message!")
 			continue
 		}
